@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="style/main.css" />
+    <script
+      type="text/javascript"
+      src="https://www.gstatic.com/charts/loader.js"
+    ></script>
+  </head>
+  <body>
+    <div class="q">
+      <span class="before-title">Before</span>
+      <span class="after-title">After</span>
+    </div>
+    <div class="q">
+      <textarea name="" id="before-query" cols="30" rows="10"></textarea>
+      <textarea name="" id="after-query" cols="30" rows="10"></textarea>
+    </div>
+    <div>
+      <label for="sample-size">Sample size:</label>
+      <input
+        type="number"
+        id="sample-size"
+        name="sample-size"
+        min="1"
+        value="10"
+      />
+    </div>
+    <button id="fight" disabled>Fight!! 🥊🥊</button>
+
+    <div class="result">
+      <div id="linechart-result"></div>
+      <div id="boxplot-result"></div>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", (e) => {
+        document.getElementById("before-query").value =
+          localStorage.getItem("beforeQuery");
+        document.getElementById("after-query").value =
+          localStorage.getItem("afterQuery");
+        document.getElementById("sample-size").value =
+          localStorage.getItem("sampleSize");
+      });
+
+      document
+        .getElementById("before-query")
+        .addEventListener("change", (e) => {
+          localStorage.setItem("beforeQuery", e.target.value);
+        });
+      document.getElementById("after-query").addEventListener("change", (e) => {
+        localStorage.setItem("afterQuery", e.target.value);
+      });
+      document.getElementById("sample-size").addEventListener("change", (e) => {
+        localStorage.setItem("sampleSize", e.target.value);
+      });
+    </script>
+
+    <script>
+      function calculateStatistics(data) {
+        // Sort the array in ascending order
+        const sortedData = data.slice().sort((a, b) => a - b);
+
+        // Calculate the median (Q2)
+        const medianIndex = Math.floor(sortedData.length / 2);
+        const median =
+          sortedData.length % 2 === 0
+            ? (sortedData[medianIndex - 1] + sortedData[medianIndex]) / 2
+            : sortedData[medianIndex];
+
+        // Calculate the lower and upper halves
+        const lowerHalf = sortedData.slice(0, medianIndex);
+        const upperHalf = sortedData.slice(
+          medianIndex + (sortedData.length % 2 === 0 ? 0 : 1)
+        );
+
+        // Calculate Q1 and Q3
+        const q1 = calculateMedian(lowerHalf);
+        const q3 = calculateMedian(upperHalf);
+
+        // Calculate min and max
+        const min = sortedData[0];
+        const max = sortedData[sortedData.length - 1];
+
+        return [max, min, q1, median, q3];
+      }
+
+      // Helper function to calculate median of an array
+      function calculateMedian(arr) {
+        const mid = Math.floor(arr.length / 2);
+        return arr.length % 2 === 0 ? (arr[mid - 1] + arr[mid]) / 2 : arr[mid];
+      }
+    </script>
+    <script>
+      async function runQuery(q) {
+        return await fetch("/profile", {
+          method: "POST",
+          body: JSON.stringify({ query: q }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      async function runBefore() {
+        const query = document.getElementById("before-query").value;
+        return await runQuery(query);
+      }
+
+      async function runAfter() {
+        const query = document.getElementById("after-query").value;
+        return await runQuery(query);
+      }
+
+      const btn = document.getElementById("fight");
+
+      let lineData, lineChart, boxPlotData, boxPlotChart;
+      let linechartResultEl = document.getElementById("linechart-result");
+      let boxPlotResultEl = document.getElementById("boxplot-result");
+
+      let lineChartOptions = {
+        chart: {
+          title: "Query duration comparison",
+          subtitle: "Before (red) vs After (blue); duration in seconds",
+        },
+        series: {
+          0: { color: "red" },
+          1: { color: "blue" },
+        },
+        axes: {
+          y: {
+            0: { label: "Duration (in seconds)" },
+          },
+          x: {
+            0: { label: "Time" },
+          },
+        },
+        width: 900,
+        height: 500,
+      };
+
+      let boxPlotOptions = {
+        title: "Box Plot",
+        height: 500,
+        legend: { position: "none" },
+        hAxis: {
+          gridlines: { color: "#fff" },
+        },
+        lineWidth: 0,
+        series: [{ color: "#D3362D" }],
+        intervals: {
+          barWidth: 1,
+          boxWidth: 1,
+          lineWidth: 2,
+          style: "boxes",
+        },
+        interval: {
+          max: {
+            style: "bars",
+            fillOpacity: 1,
+            color: "#777",
+          },
+          min: {
+            style: "bars",
+            fillOpacity: 1,
+            color: "#777",
+          },
+        },
+      };
+
+      function initCharts() {
+        let sampleSize = document.getElementById("sample-size").value;
+
+        lineData = new google.visualization.DataTable();
+        lineData.addColumn("number", "Time");
+        lineData.addColumn("number", "Duration Before");
+        lineData.addColumn("number", "Duration After");
+
+        lineChart = new google.visualization.LineChart(linechartResultEl);
+
+        boxPlotData = new google.visualization.DataTable();
+        boxPlotData.addColumn("string", "Query");
+
+        for (const i of Array.from(Array(sampleSize).keys())) {
+          boxPlotData.addColumn("number", "@Time: " + i);
+        }
+
+        boxPlotData.addColumn({ id: "max", type: "number", role: "interval" });
+        boxPlotData.addColumn({ id: "min", type: "number", role: "interval" });
+        boxPlotData.addColumn({
+          id: "firstQuartile",
+          type: "number",
+          role: "interval",
+        });
+        boxPlotData.addColumn({
+          id: "median",
+          type: "number",
+          role: "interval",
+        });
+        boxPlotData.addColumn({
+          id: "thirdQuartile",
+          type: "number",
+          role: "interval",
+        });
+
+        boxPlotChart = new google.visualization.LineChart(boxPlotResultEl);
+
+        btn.disabled = false;
+      }
+
+      google.charts
+        .load("current", { packages: ["corechart"] })
+        .then(initCharts);
+
+      function addLineData(time, durationBefore, durationAfter) {
+        lineData.addRows([[time, durationBefore, durationAfter]]);
+      }
+
+      function addBoxPlotData(label, arr) {
+        boxPlotData.addRows([[label, ...arr, ...calculateStatistics(arr)]]);
+      }
+
+      function drawLineChart() {
+        lineChart.draw(lineData, lineChartOptions);
+      }
+
+      function drawBoxPlotChart() {
+        boxPlotChart.draw(boxPlotData, boxPlotOptions);
+      }
+
+      function updateLineChart(time, durationBefore, durationAfter) {
+        addLineData(time, durationBefore, durationAfter);
+        drawLineChart();
+      }
+
+      function updateBoxPlotChart() {
+        function getSeriesFromLineData(colIdx) {
+          return Array.from(Array(lineData.getNumberOfRows()).keys()).map(
+            (r) => {
+              return lineData.getValue(r, colIdx);
+            }
+          );
+        }
+
+        addBoxPlotData("Duration Before", getSeriesFromLineData(1));
+        addBoxPlotData("Duration After", getSeriesFromLineData(2));
+        drawBoxPlotChart();
+      }
+
+      function clearAllChildOf(el) {
+        while (el.firstChild) {
+          el.removeChild(el.lastChild);
+        }
+      }
+
+      btn.addEventListener("click", async () => {
+        initCharts();
+        btn.disabled = true;
+        clearAllChildOf(linechartResultEl);
+        clearAllChildOf(boxPlotResultEl);
+
+        for (const time of Array.from(Array(sampleSize).keys())) {
+          await Promise.all([runBefore(), runAfter()])
+            .then((responses) => {
+              return Promise.all(
+                responses.map((resp) => {
+                  return resp.json();
+                })
+              );
+            })
+            .then((data) => {
+              // console.log(data);
+              let duration = data.map((d) => {
+                return (d.statistics.endTime - d.statistics.startTime) / 1000;
+              });
+              updateLineChart(time, duration[0], duration[1]);
+            });
+        }
+
+        updateBoxPlotChart();
+
+        // re enable button
+        btn.disabled = false;
+      });
+    </script>
+  </body>
+</html>

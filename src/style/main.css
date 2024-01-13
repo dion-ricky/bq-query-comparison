@@ -1,0 +1,12 @@
+.q {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+*[class^='before'], *[class*=' before'] {
+    color: red;
+}
+
+*[class^='after'], *[class*=' after'] {
+    color: blue;
+}
