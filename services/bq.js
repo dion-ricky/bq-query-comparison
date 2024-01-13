@@ -8,12 +8,16 @@ function runQuery(q) {
   };
 
   return new Promise(async (res, rej) => {
-    const [job] = await bigquery.createQueryJob(options);
-    console.log(`Job ${job.id} started.`);
+    try {
+      const [job] = await bigquery.createQueryJob(options);
+      console.log(`Job ${job.id} started.`);
 
-    job.on("complete", (metadata) => {
-      res(metadata);
-    });
+      job.on("complete", (metadata) => {
+        res(metadata);
+      });
+    } catch (err) {
+      rej(err);
+    }
   });
 }
 

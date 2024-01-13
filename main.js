@@ -8,10 +8,14 @@ app.use(express.static("src"));
 
 const { runQuery } = require("./services/bq");
 
-app.post("/profile", async (req, res) => {
-  runQuery(req.body.query).then((metadata) => {
-    res.send(metadata);
-  });
+app.post("/profile", (req, res) => {
+  runQuery(req.body.query)
+    .then((metadata) => {
+      res.send(metadata);
+    })
+    .catch((error) => {
+      res.status(500).send({ error: error });
+    });
 });
 
 app.listen(port, () => {

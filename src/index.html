@@ -31,6 +31,19 @@
     </div>
     <button id="fight" disabled>Fight!! 🥊🥊</button>
 
+    <div id="loading" style="display: none">
+      <iframe
+        src="https://giphy.com/embed/3oEdv3VDEIbMQX8N3i"
+        width="480"
+        height="480"
+        frameborder="0"
+        class="giphy-embed"
+        allowfullscreen
+      ></iframe>
+    </div>
+
+    <p id="error-msg" style="color: red"></p>
+
     <div class="result">
       <div id="linechart-result"></div>
       <div id="boxplot-result"></div>
@@ -182,7 +195,9 @@
         boxPlotData = new google.visualization.DataTable();
         boxPlotData.addColumn("string", "Query");
 
-        for (const i of Array.from(Array(parseInt(sampleSizeEl.value)).keys())) {
+        for (const i of Array.from(
+          Array(parseInt(sampleSizeEl.value)).keys()
+        )) {
           boxPlotData.addColumn("number", "@Time: " + i);
         }
 
@@ -254,26 +269,48 @@
         }
       }
 
+      function showLoading() {
+        document.getElementById("loading").style.display = "block";
+      }
+
+      function hideLoading() {
+        document.getElementById("loading").style.display = "none";
+      }
+
       btn.addEventListener("click", async () => {
+        showLoading();
+
         initCharts();
         btn.disabled = true;
         clearAllChildOf(linechartResultEl);
         clearAllChildOf(boxPlotResultEl);
 
-        for (const time of Array.from(Array(parseInt(sampleSizeEl.value)).keys())) {
+        for (const time of Array.from(
+          Array(parseInt(sampleSizeEl.value)).keys()
+        )) {
           await Promise.all([runBefore(), runAfter()])
             .then((responses) => {
               return Promise.all(
                 responses.map((resp) => {
-                  return resp.json();
+                  if (!resp.ok) {
+                    resp.json().then((error) => {
+                      document.getElementById("error-msg").innerText =
+                        error.error.message;
+                      hideLoading();
+                      btn.disabled = false;
+                      throw error.error.message;
+                    });
+                  } else {
+                    return resp.json();
+                  }
                 })
               );
             })
             .then((data) => {
-              // console.log(data);
               let duration = data.map((d) => {
                 return (d.statistics.endTime - d.statistics.startTime) / 1000;
               });
+              hideLoading();
               updateLineChart(time, duration[0], duration[1]);
             });
         }
