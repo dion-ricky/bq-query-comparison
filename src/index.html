@@ -115,6 +115,7 @@
       }
 
       const btn = document.getElementById("fight");
+      const sampleSizeEl = document.getElementById("sample-size");
 
       let lineData, lineChart, boxPlotData, boxPlotChart;
       let linechartResultEl = document.getElementById("linechart-result");
@@ -171,8 +172,6 @@
       };
 
       function initCharts() {
-        let sampleSize = document.getElementById("sample-size").value;
-
         lineData = new google.visualization.DataTable();
         lineData.addColumn("number", "Time");
         lineData.addColumn("number", "Duration Before");
@@ -183,7 +182,7 @@
         boxPlotData = new google.visualization.DataTable();
         boxPlotData.addColumn("string", "Query");
 
-        for (const i of Array.from(Array(sampleSize).keys())) {
+        for (const i of Array.from(Array(sampleSizeEl.value).keys())) {
           boxPlotData.addColumn("number", "@Time: " + i);
         }
 
@@ -261,7 +260,7 @@
         clearAllChildOf(linechartResultEl);
         clearAllChildOf(boxPlotResultEl);
 
-        for (const time of Array.from(Array(sampleSize).keys())) {
+        for (const time of Array.from(Array(sampleSizeEl.value).keys())) {
           await Promise.all([runBefore(), runAfter()])
             .then((responses) => {
               return Promise.all(
