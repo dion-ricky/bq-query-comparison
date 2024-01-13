@@ -182,7 +182,7 @@
         boxPlotData = new google.visualization.DataTable();
         boxPlotData.addColumn("string", "Query");
 
-        for (const i of Array.from(Array(sampleSizeEl.value).keys())) {
+        for (const i of Array.from(Array(parseInt(sampleSizeEl.value)).keys())) {
           boxPlotData.addColumn("number", "@Time: " + i);
         }
 
@@ -260,7 +260,7 @@
         clearAllChildOf(linechartResultEl);
         clearAllChildOf(boxPlotResultEl);
 
-        for (const time of Array.from(Array(sampleSizeEl.value).keys())) {
+        for (const time of Array.from(Array(parseInt(sampleSizeEl.value)).keys())) {
           await Promise.all([runBefore(), runAfter()])
             .then((responses) => {
               return Promise.all(
