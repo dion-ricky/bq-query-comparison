@@ -1,6 +1,11 @@
 .q {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 50% 50%;
+}
+
+.q > textarea {
+    max-width: 99%;
+    min-width: 99%;
 }
 
 *[class^='before'], *[class*=' before'] {

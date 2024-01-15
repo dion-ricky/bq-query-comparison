@@ -32,7 +32,7 @@
       ></textarea>
     </div>
     <div>
-      <label for="sample-size">Sample size:</label>
+      <label for="sample-size">Sample size: </label>
       <input
         type="number"
         id="sample-size"
@@ -61,24 +61,42 @@
       <div id="boxplot-result"></div>
     </div>
     <script>
+      const beforeQueryEl = document.getElementById("before-query");
+      const afterQueryEl = document.getElementById("after-query");
+      const sampleSizeEl = document.getElementById("sample-size");
+
       document.addEventListener("DOMContentLoaded", (e) => {
-        document.getElementById("before-query").value =
-          localStorage.getItem("beforeQuery");
-        document.getElementById("after-query").value =
-          localStorage.getItem("afterQuery");
-        document.getElementById("sample-size").value =
-          localStorage.getItem("sampleSize");
+        beforeQueryEl.value = localStorage.getItem("beforeQuery");
+        afterQueryEl.value = localStorage.getItem("afterQuery");
+
+        const storedSampleSize = localStorage.getItem("sampleSize");
+        if (storedSampleSize) {
+          sampleSizeEl.value = storedSampleSize;
+        }
+
+        const heightQueryTextarea = localStorage.getItem("heightQueryTextarea");
+        if (heightQueryTextarea) {
+          beforeQueryEl.style.height = heightQueryTextarea + "px";
+          afterQueryEl.style.height = heightQueryTextarea + "px";
+        }
+
+        const resizeObserver = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            const key = "heightQueryTextarea";
+            localStorage.setItem(key, entry.target.offsetHeight);
+          }
+        });
+
+        resizeObserver.observe(beforeQueryEl);
       });
 
-      document
-        .getElementById("before-query")
-        .addEventListener("change", (e) => {
-          localStorage.setItem("beforeQuery", e.target.value);
-        });
-      document.getElementById("after-query").addEventListener("change", (e) => {
+      beforeQueryEl.addEventListener("change", (e) => {
+        localStorage.setItem("beforeQuery", e.target.value);
+      });
+      afterQueryEl.addEventListener("change", (e) => {
         localStorage.setItem("afterQuery", e.target.value);
       });
-      document.getElementById("sample-size").addEventListener("change", (e) => {
+      sampleSizeEl.addEventListener("change", (e) => {
         localStorage.setItem("sampleSize", e.target.value);
       });
     </script>
@@ -130,17 +148,16 @@
       }
 
       async function runBefore() {
-        const query = document.getElementById("before-query").value;
+        const query = beforeQueryEl.value;
         return await runQuery(query);
       }
 
       async function runAfter() {
-        const query = document.getElementById("after-query").value;
+        const query = afterQueryEl.value;
         return await runQuery(query);
       }
 
       const btn = document.getElementById("fight");
-      const sampleSizeEl = document.getElementById("sample-size");
 
       let lineData, lineChart, boxPlotData, boxPlotChart;
       let linechartResultEl = document.getElementById("linechart-result");
@@ -318,9 +335,11 @@
                 })
               );
             })
-            .then((data) => {
-              let duration = data.map((d) => {
-                return (d.statistics.endTime - d.statistics.startTime) / 1000;
+            .then((datum) => {
+              let duration = datum.map((data) => {
+                return (
+                  (data.statistics.endTime - data.statistics.startTime) / 1000
+                );
               });
               hideLoading();
               updateLineChart(time, duration[0], duration[1]);
