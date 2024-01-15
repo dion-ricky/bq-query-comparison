@@ -11,4 +11,4 @@ How to use:
 
 - npm install
 - npm run start
-- open web browser in port 3000
+- open web browser in port 8080
